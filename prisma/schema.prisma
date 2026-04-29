@@ -1,13 +1,82 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Country {
+  CAMEROON
+  CANADA
+}
+
+enum Currency {
+  XAF
+  CAD
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  firstName     String
+  lastName      String
+  phone         String?
+  country       Country   @default(CAMEROON)
+  kycVerified   Boolean   @default(false)
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  transactions  Transaction[]
+
+  @@map("users")
+}
+
+model Transaction {
+  id              String            @id @default(cuid())
+  senderId        String
+  sender          User              @relation(fields: [senderId], references: [id])
+  amount          Float
+  currency        Currency
+  receiverName    String
+  receiverPhone   String
+  receiverEmail   String?
+  exchangeRate    Float
+  fees            Float
+  totalReceived   Float
+  status          TransactionStatus @default(PENDING)
+  paymentMethod   String            @default("mobile_money")
+  reference       String            @unique @default(cuid())
+  createdAt       DateTime          @default(now())
+  completedAt     DateTime?
+
+  @@index([senderId])
+  @@index([status])
+  @@map("transactions")
+}
+
+model ExchangeRate {
+  id            String   @id @default(cuid())
+  fromCurrency  Currency
+  toCurrency    Currency
+  rate          Float
+  createdAt     DateTime @default(now())
+
+  @@map("exchange_rates")
 }
