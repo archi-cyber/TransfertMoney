@@ -1,7 +1,20 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
-import prisma from "@/lib/prisma";
+
+// ══════════════════════════════════════════════════
+// 🔑 COMPTE DÉMO — fonctionne SANS base de données
+// Email:    demo@ecotrans.com
+// Password: Demo1234
+// ══════════════════════════════════════════════════
+const DEMO_USER = {
+  id: "demo-user-001",
+  email: "demo@ecotrans.com",
+  password: "Demo1234",
+  firstName: "Jean",
+  lastName: "Kamga",
+  country: "CAMEROON" as const,
+  role: "USER" as const,
+};
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -16,32 +29,67 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email et mot de passe requis");
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
-
-        if (!user) {
-          throw new Error("Aucun compte trouvé avec cet email");
+        // ── 1. Vérifier le compte démo d'abord ──
+        if (
+          credentials.email === DEMO_USER.email &&
+          credentials.password === DEMO_USER.password
+        ) {
+          return {
+            id: DEMO_USER.id,
+            email: DEMO_USER.email,
+            name: `${DEMO_USER.firstName} ${DEMO_USER.lastName}`,
+            firstName: DEMO_USER.firstName,
+            lastName: DEMO_USER.lastName,
+            country: DEMO_USER.country,
+            role: DEMO_USER.role,
+          };
         }
 
-        const isValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
+        // ── 2. Sinon, vérifier dans la BD (quand elle est connectée) ──
+        try {
+          const prisma = (await import("@/lib/prisma")).default;
+          const bcrypt = (await import("bcryptjs")).default;
 
-        if (!isValid) {
-          throw new Error("Mot de passe incorrect");
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+          });
+
+          if (!user) {
+            throw new Error("Aucun compte trouvé avec cet email");
+          }
+
+          const isValid = await bcrypt.compare(
+            credentials.password,
+            user.password
+          );
+
+          if (!isValid) {
+            throw new Error("Mot de passe incorrect");
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: `${user.firstName} ${user.lastName}`,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            country: user.country,
+            role: user.role,
+          };
+        } catch (error: any) {
+          // Si la BD n'est pas connectée, on le signale clairement
+          if (
+            error?.message?.includes("connect") ||
+            error?.message?.includes("ECONNREFUSED") ||
+            error?.message?.includes("P1001") ||
+            error?.code === "P1001"
+          ) {
+            throw new Error(
+              "Base de données non connectée. Utilisez le compte démo : demo@ecotrans.com / Demo1234"
+            );
+          }
+          throw error;
         }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          country: user.country,
-          role: user.role,
-        };
       },
     }),
   ],
@@ -75,5 +123,5 @@ export const authOptions: NextAuthOptions = {
     signIn: "/auth/login",
     error: "/auth/login",
   },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || "ecotrans-dev-secret-change-in-production",
 };

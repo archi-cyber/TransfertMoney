@@ -10,281 +10,178 @@ import toast from "react-hot-toast";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
+    firstName: "", lastName: "", email: "", phone: "",
+    password: "", confirmPassword: "",
     country: "CAMEROON" as "CAMEROON" | "CANADA",
   });
 
-  const passwordChecks = [
-    { label: "8 caractères min.", valid: form.password.length >= 8 },
-    { label: "Une majuscule", valid: /[A-Z]/.test(form.password) },
-    { label: "Un chiffre", valid: /[0-9]/.test(form.password) },
+  const checks = [
+    { label: "8 caractères", ok: form.password.length >= 8 },
+    { label: "Majuscule", ok: /[A-Z]/.test(form.password) },
+    { label: "Chiffre", ok: /[0-9]/.test(form.password) },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (form.password !== form.confirmPassword) {
-      toast.error("Les mots de passe ne correspondent pas");
-      return;
-    }
-
-    if (!passwordChecks.every((c) => c.valid)) {
-      toast.error("Le mot de passe ne respecte pas les critères");
-      return;
-    }
-
+    if (form.password !== form.confirmPassword) { toast.error("Les mots de passe ne correspondent pas"); return; }
+    if (!checks.every((c) => c.ok)) { toast.error("Le mot de passe ne respecte pas les critères"); return; }
     setLoading(true);
-
     try {
-      const res = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firstName: form.firstName,
-          lastName: form.lastName,
-          email: form.email,
-          phone: form.phone,
-          password: form.password,
-          country: form.country,
-        }),
+      const res = await fetch("/api/register", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ firstName: form.firstName, lastName: form.lastName, email: form.email, phone: form.phone, password: form.password, country: form.country }),
       });
-
       const data = await res.json();
+      if (!res.ok) { toast.error(data.error); return; }
+      toast.success("Compte créé !");
+      const login = await signIn("credentials", { email: form.email, password: form.password, redirect: false });
+      if (login?.ok) { router.push("/dashboard"); router.refresh(); }
+    } catch { toast.error("Erreur lors de la création"); }
+    finally { setLoading(false); }
+  };
 
-      if (!res.ok) {
-        toast.error(data.error);
-        return;
-      }
-
-      toast.success("Compte créé ! Connexion en cours...");
-
-      const loginRes = await signIn("credentials", {
-        email: form.email,
-        password: form.password,
-        redirect: false,
-      });
-
-      if (loginRes?.ok) {
-        router.push("/dashboard");
-        router.refresh();
-      }
-    } catch {
-      toast.error("Erreur lors de la création du compte");
-    } finally {
-      setLoading(false);
-    }
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "14px 16px", borderRadius: 14,
+    border: "2px solid #f5f5f4", fontSize: 14, fontWeight: 500,
+    background: "#fafaf9", transition: "border-color .2s",
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left — decorative */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 items-center justify-center p-16">
+    <div className="min-h-screen flex" style={{ fontFamily: "var(--font-body)" }}>
+      {/* ── LEFT PANEL ── */}
+      <div className="hidden lg:flex lg:w-[46%] relative items-center justify-center"
+        style={{ background: "linear-gradient(160deg, #0c0a09 0%, #1c1917 50%, #292524 100%)", padding: 64 }}>
         <div className="absolute inset-0 noise" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#0d6e3f]/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-[#e8a838]/10 rounded-full blur-3xl" />
+        <div className="absolute" style={{ top: 0, right: 0, width: 500, height: 500, background: "radial-gradient(circle, rgba(13,110,63,.12) 0%, transparent 70%)" }} />
+        <div className="absolute" style={{ bottom: 0, left: 0, width: 400, height: 400, background: "radial-gradient(circle, rgba(232,168,56,.08) 0%, transparent 70%)" }} />
 
-        <div className="relative z-10 text-white max-w-md">
-          <div className="flex items-center gap-4 mb-10">
-            <span className="text-5xl">🇨🇲</span>
-            <div className="h-0.5 flex-1 bg-gradient-to-r from-[#007a33] via-[#ce1126] to-[#fcd116] rounded-full" />
-            <span className="text-5xl">🇨🇦</span>
+        <div className="relative z-10 text-white" style={{ maxWidth: 400 }}>
+          <div className="flex items-center gap-5" style={{ marginBottom: 48 }}>
+            <span style={{ fontSize: 56 }}>🇨🇲</span>
+            <div style={{ height: 3, flex: 1, borderRadius: 99, background: "linear-gradient(90deg, #007a33, #ce1126, #fcd116)" }} />
+            <span style={{ fontSize: 56 }}>🇨🇦</span>
           </div>
-          <h2 className="font-display text-4xl leading-tight mb-6">
+
+          <h2 className="font-display" style={{ fontSize: 40, lineHeight: 1.15, marginBottom: 24, letterSpacing: "-0.02em" }}>
             Rejoignez la communauté ECOTRANS
           </h2>
-          <p className="text-white/60 text-lg leading-relaxed mb-10">
-            Créez votre compte gratuitement et commencez à envoyer de l&apos;argent
-            en quelques minutes.
+          <p style={{ fontSize: 16, lineHeight: 1.7, color: "rgba(255,255,255,.5)", marginBottom: 44 }}>
+            Créez votre compte gratuitement et commencez à envoyer de l&apos;argent en quelques minutes.
           </p>
-          <div className="space-y-4">
-            {[
-              "Inscription gratuite en 2 minutes",
-              "Frais de 1% seulement",
-              "Transferts sécurisés et traçables",
-              "Support client réactif",
-            ].map((item) => (
-              <div key={item} className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-[#0d6e3f]/20 flex items-center justify-center flex-shrink-0">
-                  <Check className="w-3.5 h-3.5 text-[#15a85e]" />
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {["Inscription gratuite en 2 minutes", "Frais de 1% seulement", "Transferts sécurisés et traçables", "Support client réactif"].map((t) => (
+              <div key={t} className="flex items-center gap-3">
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "rgba(13,110,63,.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Check style={{ width: 14, height: 14, color: "#15a85e" }} />
                 </div>
-                <span className="text-white/70 text-sm">{item}</span>
+                <span style={{ fontSize: 14, color: "rgba(255,255,255,.6)" }}>{t}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Right — form */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
-        >
-          <Link href="/" className="inline-flex items-center gap-2 mb-8">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0d6e3f] to-[#15a85e] flex items-center justify-center">
-              <Globe className="w-5 h-5 text-white" />
+      {/* ── RIGHT PANEL ── */}
+      <div className="flex-1 flex items-center justify-center overflow-y-auto" style={{ padding: "40px 24px" }}>
+        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6, ease: [.22,1,.36,1] }}
+          style={{ width: "100%", maxWidth: 460 }}>
+
+          <Link href="/" className="inline-flex items-center gap-2" style={{ marginBottom: 36 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 13, background: "linear-gradient(135deg, #094d2c, #15a85e)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Globe style={{ width: 18, height: 18, color: "#fff" }} />
             </div>
-            <span className="text-xl font-bold tracking-tight">
-              ECO<span className="text-[#0d6e3f]">TRANS</span>
-            </span>
+            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.02em" }}>ECO<span style={{ color: "#0d6e3f" }}>TRANS</span></span>
           </Link>
 
-          <h1 className="font-display text-3xl tracking-tight mb-2">
-            Créer un compte
-          </h1>
-          <p className="text-stone-500 mb-8">
-            Remplissez les informations ci-dessous pour commencer
-          </p>
+          <h1 className="font-display" style={{ fontSize: 32, letterSpacing: "-0.02em", marginBottom: 6 }}>Créer un compte</h1>
+          <p style={{ fontSize: 15, color: "#78716c", marginBottom: 32 }}>Remplissez les informations ci-dessous</p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+          <form onSubmit={handleSubmit}>
+            <div className="grid grid-cols-2 gap-3" style={{ marginBottom: 14 }}>
               <div>
-                <label className="block text-sm font-semibold text-stone-700 mb-1.5">Prénom</label>
-                <input
-                  type="text"
-                  required
-                  value={form.firstName}
-                  onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white focus:border-[#0d6e3f] transition-colors placeholder:text-stone-400"
-                  placeholder="Jean"
-                />
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#44403c", marginBottom: 6 }}>Prénom</label>
+                <input type="text" required value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} placeholder="Jean" style={inputStyle} />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-stone-700 mb-1.5">Nom</label>
-                <input
-                  type="text"
-                  required
-                  value={form.lastName}
-                  onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white focus:border-[#0d6e3f] transition-colors placeholder:text-stone-400"
-                  placeholder="Dupont"
-                />
+                <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#44403c", marginBottom: 6 }}>Nom</label>
+                <input type="text" required value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} placeholder="Dupont" style={inputStyle} />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Email</label>
-              <input
-                type="email"
-                required
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white focus:border-[#0d6e3f] transition-colors placeholder:text-stone-400"
-                placeholder="jean@exemple.com"
-              />
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#44403c", marginBottom: 6 }}>Email</label>
+              <input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="jean@exemple.com" style={inputStyle} />
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Téléphone</label>
-              <input
-                type="tel"
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white focus:border-[#0d6e3f] transition-colors placeholder:text-stone-400"
-                placeholder="+237 6XX XXX XXX"
-              />
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#44403c", marginBottom: 6 }}>Téléphone</label>
+              <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+237 6XX XXX XXX" style={inputStyle} />
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Pays de résidence</label>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#44403c", marginBottom: 6 }}>Pays de résidence</label>
               <div className="grid grid-cols-2 gap-3">
-                {[
-                  { value: "CAMEROON", flag: "🇨🇲", label: "Cameroun" },
-                  { value: "CANADA", flag: "🇨🇦", label: "Canada" },
-                ].map((country) => (
-                  <button
-                    key={country.value}
-                    type="button"
-                    onClick={() => setForm({ ...form, country: country.value as "CAMEROON" | "CANADA" })}
-                    className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 font-semibold transition-all ${
-                      form.country === country.value
-                        ? "border-[#0d6e3f] bg-emerald-50 text-[#0d6e3f]"
-                        : "border-stone-200 text-stone-600 hover:border-stone-300"
-                    }`}
-                  >
-                    <span className="text-xl">{country.flag}</span>
-                    {country.label}
+                {([
+                  { v: "CAMEROON", flag: "🇨🇲", label: "Cameroun" },
+                  { v: "CANADA", flag: "🇨🇦", label: "Canada" },
+                ] as const).map((c) => (
+                  <button key={c.v} type="button" onClick={() => setForm({ ...form, country: c.v })}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                      padding: "14px", borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: "pointer",
+                      border: `2px solid ${form.country === c.v ? "#0d6e3f" : "#f5f5f4"}`,
+                      background: form.country === c.v ? "#ecfdf3" : "#fafaf9",
+                      color: form.country === c.v ? "#0d6e3f" : "#57534e",
+                      transition: "all .2s",
+                    }}>
+                    <span style={{ fontSize: 20 }}>{c.flag}</span>{c.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Mot de passe</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={form.password}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#44403c", marginBottom: 6 }}>Mot de passe</label>
+              <div style={{ position: "relative" }}>
+                <input type={showPw ? "text" : "password"} required value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className="w-full px-4 py-3 pr-12 rounded-xl border border-stone-200 bg-white focus:border-[#0d6e3f] transition-colors placeholder:text-stone-400"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  placeholder="••••••••" style={{ ...inputStyle, paddingRight: 48 }} />
+                <button type="button" onClick={() => setShowPw(!showPw)}
+                  style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#a8a29e" }}>
+                  {showPw ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
                 </button>
               </div>
               {form.password && (
-                <div className="flex gap-3 mt-2 flex-wrap">
-                  {passwordChecks.map((check) => (
-                    <span
-                      key={check.label}
-                      className={`text-xs font-medium ${check.valid ? "text-[#0d6e3f]" : "text-stone-400"}`}
-                    >
-                      {check.valid ? "✓" : "○"} {check.label}
+                <div className="flex gap-4 flex-wrap" style={{ marginTop: 8 }}>
+                  {checks.map((c) => (
+                    <span key={c.label} style={{ fontSize: 12, fontWeight: 600, color: c.ok ? "#0d6e3f" : "#a8a29e" }}>
+                      {c.ok ? "✓" : "○"} {c.label}
                     </span>
                   ))}
                 </div>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-stone-700 mb-1.5">Confirmer le mot de passe</label>
-              <input
-                type="password"
-                required
-                value={form.confirmPassword}
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#44403c", marginBottom: 6 }}>Confirmer le mot de passe</label>
+              <input type="password" required value={form.confirmPassword}
                 onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-white focus:border-[#0d6e3f] transition-colors placeholder:text-stone-400"
-                placeholder="••••••••"
-              />
+                placeholder="••••••••" style={inputStyle} />
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3.5 text-base font-semibold text-white bg-[#0d6e3f] hover:bg-[#094d2c] disabled:opacity-60 disabled:cursor-not-allowed rounded-xl transition-all shadow-lg shadow-[#0d6e3f]/20 mt-2"
-            >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <>
-                  Créer mon compte
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
+            <button type="submit" disabled={loading}
+              className="flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
+              style={{ width: "100%", padding: "16px", fontSize: 15, fontWeight: 700, color: "#fff", background: "#0d6e3f", borderRadius: 14, border: "none", cursor: "pointer", boxShadow: "0 6px 24px rgba(13,110,63,.25)" }}>
+              {loading ? <Loader2 style={{ width: 20, height: 20 }} className="animate-spin" /> : <><span>Créer mon compte</span><ArrowRight style={{ width: 16, height: 16 }} /></>}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-stone-500">
+          <p className="text-center" style={{ marginTop: 24, fontSize: 14, color: "#78716c" }}>
             Déjà un compte ?{" "}
-            <Link href="/auth/login" className="text-[#0d6e3f] font-semibold hover:underline">
-              Se connecter
-            </Link>
+            <Link href="/auth/login" style={{ color: "#0d6e3f", fontWeight: 700 }} className="hover:underline">Se connecter</Link>
           </p>
         </motion.div>
       </div>
