@@ -84,7 +84,7 @@ export const metadata: Metadata = {
   },
   verification: {
     // Tu ajouteras le code Google ici (étape 2 du guide)
-    // google: "ton-code-verification-google",
+     google: " googlea63fa33374b256dd.html",
   },
 };
 
