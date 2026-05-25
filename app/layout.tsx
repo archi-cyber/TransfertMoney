@@ -17,9 +17,75 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "ECOTRANS — Transfert d'argent Cameroun ↔ Canada",
+  // ── SEO de base ──
+  title: {
+    default: "ECOTRANS — Transfert d'argent Cameroun ↔ Canada | 1% de frais",
+    template: "%s | ECOTRANS",
+  },
   description:
-    "Envoyez et recevez de l'argent entre le Cameroun et le Canada. 1% de frais. Rapide, sécurisé, fiable.",
+    "Envoyez de l'argent entre le Cameroun et le Canada avec seulement 1% de frais. Transfert rapide, sécurisé et fiable. Mobile Money, virement bancaire. Rejoignez +2000 utilisateurs.",
+  keywords: [
+    "transfert argent Cameroun Canada",
+    "envoyer argent Cameroun",
+    "envoyer argent Canada",
+    "transfert argent diaspora",
+    "Mobile Money Cameroun",
+    "ECOTRANS",
+    "transfert argent Afrique",
+    "envoyer argent famille Cameroun",
+    "frais transfert 1%",
+    "transfert rapide Cameroun",
+    "wire transfer Cameroon Canada",
+    "send money Cameroon",
+  ],
+
+  // ── Open Graph (Facebook, LinkedIn, WhatsApp) ──
+  openGraph: {
+    type: "website",
+    locale: "fr_CA",
+    url: "https://www.ecotranstubo.ca",
+    siteName: "ECOTRANS",
+    title: "ECOTRANS — Transfert d'argent Cameroun ↔ Canada | 1% de frais",
+    description:
+      "Envoyez de l'argent entre le Cameroun et le Canada. 1% de frais, réception en moins de 24h. Rapide, sécurisé, fiable.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "ECOTRANS - Transfert d'argent Cameroun Canada",
+      },
+    ],
+  },
+
+  // ── Twitter Card ──
+  twitter: {
+    card: "summary_large_image",
+    title: "ECOTRANS — Transfert d'argent Cameroun ↔ Canada",
+    description:
+      "1% de frais. Réception en moins de 24h. Rejoignez +2000 utilisateurs.",
+    images: ["/og-image.png"],
+  },
+
+  // ── Autres ──
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  alternates: {
+    canonical: "https://www.ecotranstubo.ca",
+  },
+  verification: {
+    // Tu ajouteras le code Google ici (étape 2 du guide)
+    // google: "ton-code-verification-google",
+  },
 };
 
 export default function RootLayout({
@@ -29,6 +95,28 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr" className={`${dmSans.variable} ${playfair.variable}`}>
+      <head>
+        {/* Schema.org JSON-LD pour Google */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FinancialService",
+              name: "ECOTRANS",
+              description:
+                "Service de transfert d'argent entre le Cameroun et le Canada avec 1% de frais.",
+              url: "https://www.ecotranstubo.ca",
+              areaServed: [
+                { "@type": "Country", name: "Canada" },
+                { "@type": "Country", name: "Cameroon" },
+              ],
+              serviceType: "Money Transfer",
+              currenciesAccepted: "CAD, XAF",
+            }),
+          }}
+        />
+      </head>
       <body
         className="antialiased"
         style={{
