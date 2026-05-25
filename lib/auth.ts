@@ -1,5 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { TransactionForm } from "@/types";
 
 // ══════════════════════════════════════════════════
 // 🔑 COMPTE DÉMO — fonctionne SANS base de données
