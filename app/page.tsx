@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { motion,Variants} from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import {
   ArrowRight,
   Shield,
@@ -15,13 +15,39 @@ import {
   Star,
   Menu,
   X,
+  Wifi,
+  Tv,
+  Hospital,
+  Building2,
+  CreditCard,
+  CheckCircle,
 } from "lucide-react";
 import {
   formatCurrency,
   EXCHANGE_RATES,
-  calculateFees,
-  calculateReceived,
 } from "@/lib/utils";
+
+// Taux de frais à 0.5%
+const FEE_RATE = 0.005;
+
+// Fonctions de calcul locales avec 0.5% de frais
+const calculateFeesLocal = (amount: number) => amount * FEE_RATE;
+
+const calculateReceivedLocal = (
+  amount: number,
+  fromCurrency: "CAD" | "XAF",
+  toCurrency: "CAD" | "XAF"
+) => {
+  const fees = calculateFeesLocal(amount);
+  const amountAfterFees = amount - fees;
+  
+  if (fromCurrency === "CAD" && toCurrency === "XAF") {
+    return amountAfterFees * EXCHANGE_RATES.CAD_TO_XAF;
+  } else if (fromCurrency === "XAF" && toCurrency === "CAD") {
+    return amountAfterFees * EXCHANGE_RATES.XAF_TO_CAD;
+  }
+  return amountAfterFees;
+};
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 30 },
@@ -38,8 +64,52 @@ export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const toCurrency = fromCurrency === "CAD" ? "XAF" : "CAD";
-  const fees = calculateFees(amount);
-  const received = calculateReceived(amount, fromCurrency, toCurrency);
+  const fees = calculateFeesLocal(amount);
+  const received = calculateReceivedLocal(amount, fromCurrency, toCurrency);
+
+  const servicesList = [
+    {
+      icon: Wifi,
+      title: "Facture SOCADEL",
+      description: "Réglez vos factures d'eau SOCADEL en quelques clics. Paiement sécurisé et reçu immédiat.",
+      color: "bg-blue-50 text-blue-600 border-blue-100",
+    },
+    {
+      icon: Tv,
+      title: "Abonnement CanalSat",
+      description: "Rechargez ou payez votre abonnement CanalSat sans frais cachés. Service disponible 24/7.",
+      color: "bg-purple-50 text-purple-600 border-purple-100",
+    },
+    {
+      icon: Hospital,
+      title: "Facture Hospitalière",
+      description: "Payez vos factures d'hôpitaux et cliniques partenaires directement depuis ECOTRANS.",
+      color: "bg-red-50 text-red-600 border-red-100",
+    },
+  ];
+
+  const partnersList = [
+    {
+      name: "Banque Internationale du Cameroun",
+      logo: "https://placehold.co/120x80?text=BICEC&font=montserrat",
+      alt: "BICEC",
+    },
+    {
+      name: "Orange Cameroun",
+      logo: "https://placehold.co/120x80?text=Orange&font=montserrat",
+      alt: "Orange",
+    },
+    {
+      name: "MTN Cameroun",
+      logo: "https://placehold.co/120x80?text=MTN&font=montserrat",
+      alt: "MTN",
+    },
+    {
+      name: "Société Générale",
+      logo: "https://placehold.co/120x80?text=SocGen&font=montserrat",
+      alt: "Société Générale",
+    },
+  ];
 
   return (
     <div className="min-h-screen">
@@ -58,6 +128,9 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-stone-600">
             <a href="#features" className="hover:text-[#0d6e3f] transition-colors">
               Fonctionnalités
+            </a>
+            <a href="#services" className="hover:text-[#0d6e3f] transition-colors">
+              Services
             </a>
             <a href="#calculator" className="hover:text-[#0d6e3f] transition-colors">
               Simulateur
@@ -98,6 +171,7 @@ export default function LandingPage() {
           >
             <div className="flex flex-col gap-4 pt-4">
               <a href="#features" className="text-stone-600 font-medium">Fonctionnalités</a>
+              <a href="#services" className="text-stone-600 font-medium">Services</a>
               <a href="#calculator" className="text-stone-600 font-medium">Simulateur</a>
               <a href="#how-it-works" className="text-stone-600 font-medium">Comment ça marche</a>
               <hr className="border-stone-200" />
@@ -128,7 +202,7 @@ export default function LandingPage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0d6e3f]/5 border border-[#0d6e3f]/10 text-[#0d6e3f] text-sm font-medium mb-8"
             >
               <div className="w-2 h-2 rounded-full bg-[#0d6e3f] pulse-green" />
-              Seulement 1% de frais de transfert
+              Seulement 0,5% de frais de transfert
             </motion.div>
 
             <motion.h1
@@ -217,8 +291,9 @@ export default function LandingPage() {
               <span className="text-[#0d6e3f]">ECOTRANS</span> ?
             </h2>
             <p className="text-stone-500 text-lg max-w-2xl mx-auto">
-              Une plateforme construite pour la diaspora, avec les fonctionnalités
-              qui comptent vraiment.
+              Une plateforme moderne, sécurisée et pensée pour la diaspora camerounaise. 
+              Nous combinons rapidité, transparence et innovation pour faciliter vos 
+              transferts d'argent et paiements de factures entre le Canada et le Cameroun.
             </p>
           </motion.div>
 
@@ -227,19 +302,19 @@ export default function LandingPage() {
               {
                 icon: Zap,
                 title: "Ultra rapide",
-                desc: "Vos transferts arrivent en moins de 24h. Pas de délais cachés ni de surprises.",
+                desc: "Vos transferts sont traités instantanément et arrivent généralement en moins de 24h, souvent en quelques heures. Suivez l'état de votre transaction à chaque étape via notre interface en temps réel.",
                 color: "bg-amber-50 text-amber-600 border-amber-100",
               },
               {
                 icon: Shield,
                 title: "100% sécurisé",
-                desc: "Chiffrement de bout en bout, vérification d'identité, et protection anti-fraude.",
+                desc: "Authentification à deux facteurs, chiffrement bancaire SSL 256-bit et conformité aux normes KYC internationales. Vos fonds sont assurés et vos données personnelles protégées.",
                 color: "bg-emerald-50 text-emerald-600 border-emerald-100",
               },
               {
                 icon: Globe,
-                title: "1% de frais seulement",
-                desc: "Les frais les plus bas du marché. Pas de frais cachés, pas de mauvaises surprises.",
+                title: "0,5% de frais seulement",
+                desc: "Seulement 0,5% de frais de transfert, bien en dessous de la moyenne du marché. Pas de coûts cachés, ni de marge cachée sur le taux de change. Ce que vous voyez est ce que votre destinataire reçoit.",
                 color: "bg-sky-50 text-sky-600 border-sky-100",
               },
             ].map((feat, i) => (
@@ -260,6 +335,69 @@ export default function LandingPage() {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ===== SERVICES SECTION ===== */}
+      <section id="services" className="py-20 md:py-28 bg-gradient-to-br from-stone-50 to-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={0}
+            className="text-center mb-16"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0d6e3f]/5 border border-[#0d6e3f]/10 text-[#0d6e3f] text-sm font-medium mb-6">
+              <CreditCard className="w-4 h-4" />
+              Paiement de factures
+            </div>
+            <h2 className="font-display text-3xl md:text-5xl tracking-tight mb-4">
+              Nos <span className="text-[#0d6e3f]">services</span> exclusifs
+            </h2>
+            <p className="text-stone-500 text-lg max-w-2xl mx-auto">
+              En plus des transferts d'argent, réglez vos factures directement depuis ECOTRANS. 
+              Simple, rapide et sans frais supplémentaires.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {servicesList.map((service, i) => (
+              <motion.div
+                key={service.title}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={fadeUp}
+                custom={i + 1}
+                className="group p-8 rounded-3xl bg-white border border-stone-200/60 hover:border-[#0d6e3f]/20 hover:shadow-xl hover:shadow-stone-200/40 transition-all duration-300"
+              >
+                <div className={`w-14 h-14 rounded-2xl ${service.color} border flex items-center justify-center mb-6`}>
+                  <service.icon className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-bold mb-3">{service.title}</h3>
+                <p className="text-stone-500 leading-relaxed mb-4">{service.description}</p>
+                <div className="flex items-center gap-2 text-sm text-[#0d6e3f] font-medium">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Paiement instantané</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={3}
+            className="mt-12 text-center"
+          >
+            <p className="text-stone-400 text-sm">
+              Plus de services à venir : électricité (ENEO), scolarité, impôts, et bien d'autres.
+            </p>
+          </motion.div>
         </div>
       </section>
 
@@ -329,7 +467,7 @@ export default function LandingPage() {
 
               <div className="space-y-3 py-5 border-y border-stone-100 mb-6">
                 <div className="flex justify-between text-sm">
-                  <span className="text-stone-500">Frais (1%)</span>
+                  <span className="text-stone-500">Frais (0,5%)</span>
                   <span className="font-semibold text-stone-700">
                     {formatCurrency(fees, fromCurrency)}
                   </span>
@@ -426,6 +564,68 @@ export default function LandingPage() {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ===== PARTNERS SECTION ===== */}
+      <section className="py-20 md:py-28 bg-stone-50">
+        <div className="max-w-7xl mx-auto px-6">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={0}
+            className="text-center mb-12"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0d6e3f]/5 border border-[#0d6e3f]/10 text-[#0d6e3f] text-sm font-medium mb-6">
+              <Building2 className="w-4 h-4" />
+              Ils nous font confiance
+            </div>
+            <h2 className="font-display text-3xl md:text-4xl tracking-tight mb-4">
+              Nos <span className="text-[#0d6e3f]">partenaires</span>
+            </h2>
+            <p className="text-stone-500 text-lg max-w-2xl mx-auto">
+              ECOTRANS collabore avec les plus grandes institutions financières et 
+              opérateurs télécoms pour vous offrir un service fiable.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={1}
+            className="flex flex-wrap justify-center items-center gap-8 md:gap-12"
+          >
+            {partnersList.map((partner, idx) => (
+              <div
+                key={partner.name}
+                className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 min-w-[140px]"
+              >
+                <img
+                  src={partner.logo}
+                  alt={partner.alt}
+                  className="h-16 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                />
+                <span className="text-xs text-stone-400 font-medium text-center">
+                  {partner.name}
+                </span>
+              </div>
+            ))}
+          </motion.div>
+
+          <motion.p
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={2}
+            className="text-center text-stone-400 text-sm mt-8"
+          >
+            * Les logos sont des marques déposées par leurs propriétaires respectifs
+          </motion.p>
         </div>
       </section>
 
