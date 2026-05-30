@@ -134,6 +134,12 @@ export default function LandingPage() {
       logo: "/parteners/logo_clean.png",
       alt: "Vitacare",
     },
+
+    {
+      name: "Clear Radiology",
+      logo: "/parteners/clear.png",
+      alt: "Clear Radiology",
+    },
   ];
 
   return (
