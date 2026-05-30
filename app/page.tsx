@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, Variants } from "framer-motion";
 import {
@@ -21,33 +21,12 @@ import {
   Building2,
   CreditCard,
   CheckCircle,
+  AlertCircle,
 } from "lucide-react";
-import {
-  formatCurrency,
-  EXCHANGE_RATES,
-} from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 
 // Taux de frais à 0.5%
 const FEE_RATE = 0.005;
-
-// Fonctions de calcul locales avec 0.5% de frais
-const calculateFeesLocal = (amount: number) => amount * FEE_RATE;
-
-const calculateReceivedLocal = (
-  amount: number,
-  fromCurrency: "CAD" | "XAF",
-  toCurrency: "CAD" | "XAF"
-) => {
-  const fees = calculateFeesLocal(amount);
-  const amountAfterFees = amount - fees;
-  
-  if (fromCurrency === "CAD" && toCurrency === "XAF") {
-    return amountAfterFees * EXCHANGE_RATES.CAD_TO_XAF;
-  } else if (fromCurrency === "XAF" && toCurrency === "CAD") {
-    return amountAfterFees * EXCHANGE_RATES.XAF_TO_CAD;
-  }
-  return amountAfterFees;
-};
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 30 },
@@ -63,9 +42,70 @@ export default function LandingPage() {
   const [fromCurrency, setFromCurrency] = useState<"CAD" | "XAF">("CAD");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Taux de change dynamiques
+  const [cadToXafRate, setCadToXafRate] = useState<number | null>(null);
+  const [xafToCadRate, setXafToCadRate] = useState<number | null>(null);
+  const [isLoadingRate, setIsLoadingRate] = useState(true);
+  const [rateError, setRateError] = useState(false);
+
+  // Déclarer toCurrency tout de suite après fromCurrency
   const toCurrency = fromCurrency === "CAD" ? "XAF" : "CAD";
+
+  // Récupération du taux de change
+  useEffect(() => {
+    const fetchExchangeRate = async () => {
+      try {
+        setIsLoadingRate(true);
+        setRateError(false);
+        const response = await fetch("https://api.exchangerate-api.com/v4/latest/CAD");
+        if (!response.ok) throw new Error("Erreur réseau");
+        const data = await response.json();
+        const rate = data.rates["XAF"];
+        if (rate && typeof rate === "number") {
+          setCadToXafRate(rate);
+          setXafToCadRate(1 / rate);
+        } else {
+          throw new Error("Taux invalide");
+        }
+      } catch (error) {
+        console.error("Erreur chargement taux:", error);
+        setRateError(true);
+        setCadToXafRate(450);
+        setXafToCadRate(1 / 450);
+      } finally {
+        setIsLoadingRate(false);
+      }
+    };
+
+    fetchExchangeRate();
+    const interval = setInterval(fetchExchangeRate, 10 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fonctions de calcul
+  const calculateFeesLocal = (amount: number) => amount * FEE_RATE;
+
+  const calculateReceivedLocal = (
+    amount: number,
+    fromCurr: "CAD" | "XAF",
+    toCurr: "CAD" | "XAF",
+    cadRate: number,
+    xafRate: number
+  ) => {
+    const feesAmount = calculateFeesLocal(amount);
+    const amountAfterFees = amount - feesAmount;
+    if (fromCurr === "CAD" && toCurr === "XAF") {
+      return amountAfterFees * cadRate;
+    } else if (fromCurr === "XAF" && toCurr === "CAD") {
+      return amountAfterFees * xafRate;
+    }
+    return amountAfterFees;
+  };
+
   const fees = calculateFeesLocal(amount);
-  const received = calculateReceivedLocal(amount, fromCurrency, toCurrency);
+  const received = cadToXafRate && xafToCadRate
+    ? calculateReceivedLocal(amount, fromCurrency, toCurrency, cadToXafRate, xafToCadRate)
+    : 0;
 
   const servicesList = [
     {
@@ -88,15 +128,12 @@ export default function LandingPage() {
     },
   ];
 
-  // pour l'instant un seul partenaire, mais on peut facilement en ajouter d'autres dans le futur
   const partnersList = [
-   
-   {
-    name: "Vitacare",
-    logo: "/parteners/logo_clean.png",
-    alt: "Vitacare",
-   },
-   
+    {
+      name: "Vitacare",
+      logo: "/parteners/logo_clean.png",
+      alt: "Vitacare",
+    },
   ];
 
   return (
@@ -125,6 +162,9 @@ export default function LandingPage() {
             </a>
             <a href="#how-it-works" className="hover:text-[#0d6e3f] transition-colors">
               Comment ça marche
+            </a>
+            <a href="#partners" className="hover:text-[#0d6e3f] transition-colors">
+              Partenaires
             </a>
           </div>
 
@@ -162,6 +202,7 @@ export default function LandingPage() {
               <a href="#services" className="text-stone-600 font-medium">Services</a>
               <a href="#calculator" className="text-stone-600 font-medium">Simulateur</a>
               <a href="#how-it-works" className="text-stone-600 font-medium">Comment ça marche</a>
+              <a href="#partners" className="text-stone-600 font-medium">Partenaires</a>
               <hr className="border-stone-200" />
               <Link href="/auth/login" className="text-stone-700 font-semibold">Connexion</Link>
               <Link href="/auth/register" className="px-5 py-3 text-center font-semibold text-white bg-[#0d6e3f] rounded-xl">
@@ -462,12 +503,20 @@ export default function LandingPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-stone-500">Taux de change</span>
-                  <span className="font-semibold text-stone-700">
-                    1 {fromCurrency} ={" "}
-                    {fromCurrency === "CAD"
-                      ? `${EXCHANGE_RATES.CAD_TO_XAF} XAF`
-                      : `${EXCHANGE_RATES.XAF_TO_CAD.toFixed(6)} CAD`}
-                  </span>
+                  {isLoadingRate ? (
+                    <span className="text-stone-400 italic">Chargement...</span>
+                  ) : rateError ? (
+                    <span className="text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" /> Taux indicatif
+                    </span>
+                  ) : (
+                    <span className="font-semibold text-stone-700">
+                      1 {fromCurrency} ={" "}
+                      {fromCurrency === "CAD"
+                        ? `${cadToXafRate?.toFixed(2)} XAF`
+                        : `${xafToCadRate?.toFixed(6)} CAD`}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -476,9 +525,13 @@ export default function LandingPage() {
                   Le destinataire reçoit
                 </label>
                 <div className="px-5 py-4 rounded-xl bg-emerald-50 border border-emerald-100">
-                  <span className="text-3xl font-bold text-[#0d6e3f]">
-                    {formatCurrency(received, toCurrency as "CAD" | "XAF")}
-                  </span>
+                  {isLoadingRate ? (
+                    <span className="text-stone-500">Calcul en cours...</span>
+                  ) : (
+                    <span className="text-3xl font-bold text-[#0d6e3f]">
+                      {formatCurrency(received, toCurrency)}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -556,7 +609,7 @@ export default function LandingPage() {
       </section>
 
       {/* ===== PARTNERS SECTION ===== */}
-      <section className="py-20 md:py-28 bg-stone-50">
+      <section id="partners" className="py-20 md:py-28 bg-stone-50 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-6">
           <motion.div
             initial="hidden"
@@ -587,16 +640,16 @@ export default function LandingPage() {
             custom={1}
             className="flex flex-wrap justify-center items-center gap-8 md:gap-12"
           >
-            {partnersList.map((partner, idx) => (
+            {partnersList.map((partner) => (
               <div
                 key={partner.name}
                 className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 min-w-[140px]"
               >
                 <img
-  src={partner.logo}
-  alt={partner.alt}
-  className="h-16 w-auto object-contain transition-all duration-300"
-/>
+                  src={partner.logo}
+                  alt={partner.alt}
+                  className="h-16 w-auto object-contain transition-all duration-300"
+                />
                 <span className="text-xs text-stone-400 font-medium text-center">
                   {partner.name}
                 </span>
