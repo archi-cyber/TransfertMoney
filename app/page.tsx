@@ -140,11 +140,6 @@ export default function LandingPage() {
       logo: "/parteners/clear.png",
       alt: "Clear Radiology",
     },
-    {
-      name: "Ghsilain",
-      logo: "/parteners/clear.png",
-      alt: "Clear Radiology",
-    },
   ];
 
   return (
