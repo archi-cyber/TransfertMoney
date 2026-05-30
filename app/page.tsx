@@ -88,27 +88,15 @@ export default function LandingPage() {
     },
   ];
 
+  // pour l'instant un seul partenaire, mais on peut facilement en ajouter d'autres dans le futur
   const partnersList = [
-    {
-      name: "Banque Internationale du Cameroun",
-      logo: "https://placehold.co/120x80?text=BICEC&font=montserrat",
-      alt: "BICEC",
-    },
-    {
-      name: "Orange Cameroun",
-      logo: "https://placehold.co/120x80?text=Orange&font=montserrat",
-      alt: "Orange",
-    },
-    {
-      name: "MTN Cameroun",
-      logo: "https://placehold.co/120x80?text=MTN&font=montserrat",
-      alt: "MTN",
-    },
-    {
-      name: "Société Générale",
-      logo: "https://placehold.co/120x80?text=SocGen&font=montserrat",
-      alt: "Société Générale",
-    },
+   
+   {
+    name: "Vitacare",
+    logo: "/parteners/logo_clean.png",
+    alt: "Vitacare",
+   },
+   
   ];
 
   return (
@@ -605,10 +593,10 @@ export default function LandingPage() {
                 className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 min-w-[140px]"
               >
                 <img
-                  src={partner.logo}
-                  alt={partner.alt}
-                  className="h-16 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
-                />
+  src={partner.logo}
+  alt={partner.alt}
+  className="h-16 w-auto object-contain transition-all duration-300"
+/>
                 <span className="text-xs text-stone-400 font-medium text-center">
                   {partner.name}
                 </span>
