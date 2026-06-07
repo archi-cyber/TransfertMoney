@@ -54,41 +54,58 @@ export default function LandingPage() {
 
   const toCurrency = fromCurrency === "CAD" ? "XAF" : "CAD";
 
-  // Récupération du taux de change avec Frankfurter API (mise à jour quotidienne)
-  useEffect(() => {
-    const fetchExchangeRate = async () => {
+ // Récupération du taux de change avec plusieurs sources
+useEffect(() => {
+  const fetchExchangeRate = async () => {
+    setIsLoadingRate(true);
+    setRateError(false);
+
+    // Liste des APIs à essayer (ordre de priorité)
+    const apis = [
+      // 1. Frankfurter via proxy CORS (taux BCE)
+      async () => {
+        const res = await fetch("https://api.allorigins.win/raw?url=https://api.frankfurter.app/latest?from=CAD&to=XAF");
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        return data.rates.XAF;
+      },
+      // 2. ExchangeRate.host (gratuit, sans clé)
+      async () => {
+        const res = await fetch("https://api.exchangerate.host/convert?from=CAD&to=XAF");
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        return data.result;
+      },
+      // 3. Valeur manuelle du jour (à mettre à jour si besoin)
+      async () => 406.47,
+    ];
+
+    for (const fetchFn of apis) {
       try {
-        setIsLoadingRate(true);
-        setRateError(false);
-        // Frankfurter API – taux officiels sans clé, source BCE
-        const response = await fetch("https://api.frankfurter.app/latest?from=CAD&to=XAF");
-        if (!response.ok) throw new Error("Erreur réseau");
-        const data = await response.json();
-        const rate = data.rates.XAF;
-        if (rate && typeof rate === "number") {
+        const rate = await fetchFn();
+        if (rate && typeof rate === "number" && rate > 0) {
           setCadToXafRate(rate);
           setXafToCadRate(1 / rate);
           setLastUpdate(new Date());
-        } else {
-          throw new Error("Taux invalide");
+          setIsLoadingRate(false);
+          return;
         }
       } catch (error) {
-        console.error("Erreur chargement taux:", error);
-        setRateError(true);
-        // Valeur de secours (cours du 6 juin 2026)
-        setCadToXafRate(406.47);
-        setXafToCadRate(1 / 406.47);
-      } finally {
-        setIsLoadingRate(false);
+        console.warn("API échouée, tentative suivante...");
       }
-    };
+    }
 
-    fetchExchangeRate();
-    // Rafraîchissement toutes les heures (l'API Frankfurter change une fois par jour)
-    const interval = setInterval(fetchExchangeRate, 60 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+    // Si toutes les APIs échouent
+    setRateError(true);
+    setCadToXafRate(406.47);
+    setXafToCadRate(1 / 406.47);
+    setIsLoadingRate(false);
+  };
 
+  fetchExchangeRate();
+  const interval = setInterval(fetchExchangeRate, 60 * 60 * 1000); // toutes les heures
+  return () => clearInterval(interval);
+}, []);
   const calculateFeesLocal = (amount: number) => amount * FEE_RATE;
 
   const calculateReceivedLocal = (
