@@ -25,6 +25,9 @@ import {
   AlertCircle,
   Mail,
   Phone,
+  MessageCircle,
+  Trash2,
+  User,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
@@ -40,6 +43,14 @@ const fadeUp: Variants = {
   }),
 };
 
+// Type pour un commentaire
+type Comment = {
+  id: string;
+  name: string;
+  message: string;
+  date: Date;
+};
+
 export default function LandingPage() {
   const [amount, setAmount] = useState(100);
   const [fromCurrency, setFromCurrency] = useState<"CAD" | "XAF">("CAD");
@@ -52,60 +63,109 @@ export default function LandingPage() {
   const [rateError, setRateError] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
+  // État pour les commentaires
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newCommentName, setNewCommentName] = useState("");
+  const [newCommentMessage, setNewCommentMessage] = useState("");
+  const [commentError, setCommentError] = useState("");
+
   const toCurrency = fromCurrency === "CAD" ? "XAF" : "CAD";
 
- // Récupération du taux de change avec plusieurs sources
-useEffect(() => {
-  const fetchExchangeRate = async () => {
-    setIsLoadingRate(true);
-    setRateError(false);
-
-    // Liste des APIs à essayer (ordre de priorité)
-    const apis = [
-      // 1. Frankfurter via proxy CORS (taux BCE)
-      async () => {
-        const res = await fetch("https://api.allorigins.win/raw?url=https://api.frankfurter.app/latest?from=CAD&to=XAF");
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        return data.rates.XAF;
-      },
-      // 2. ExchangeRate.host (gratuit, sans clé)
-      async () => {
-        const res = await fetch("https://api.exchangerate.host/convert?from=CAD&to=XAF");
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        return data.result;
-      },
-      // 3. Valeur manuelle du jour (à mettre à jour si besoin)
-      async () => 406.47,
-    ];
-
-    for (const fetchFn of apis) {
+  // Récupération des commentaires depuis localStorage
+  useEffect(() => {
+    const storedComments = localStorage.getItem("ecotrans_comments");
+    if (storedComments) {
       try {
-        const rate = await fetchFn();
-        if (rate && typeof rate === "number" && rate > 0) {
-          setCadToXafRate(rate);
-          setXafToCadRate(1 / rate);
-          setLastUpdate(new Date());
-          setIsLoadingRate(false);
-          return;
-        }
-      } catch (error) {
-        console.warn("API échouée, tentative suivante...");
+        const parsed = JSON.parse(storedComments);
+        // Convertir les dates string en objets Date
+        const commentsWithDates = parsed.map((c: any) => ({
+          ...c,
+          date: new Date(c.date),
+        }));
+        setComments(commentsWithDates);
+      } catch (e) {
+        console.error("Erreur chargement commentaires", e);
       }
     }
+  }, []);
 
-    // Si toutes les APIs échouent
-    setRateError(true);
-    setCadToXafRate(406.47);
-    setXafToCadRate(1 / 406.47);
-    setIsLoadingRate(false);
+  // Sauvegarde des commentaires dans localStorage à chaque modification
+  useEffect(() => {
+    localStorage.setItem("ecotrans_comments", JSON.stringify(comments));
+  }, [comments]);
+
+  // Ajout d'un commentaire
+  const handleAddComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCommentName.trim() || !newCommentMessage.trim()) {
+      setCommentError("Veuillez entrer votre nom et un message.");
+      return;
+    }
+    const newComment: Comment = {
+      id: Date.now().toString(),
+      name: newCommentName.trim(),
+      message: newCommentMessage.trim(),
+      date: new Date(),
+    };
+    setComments((prev) => [newComment, ...prev]);
+    setNewCommentName("");
+    setNewCommentMessage("");
+    setCommentError("");
   };
 
-  fetchExchangeRate();
-  const interval = setInterval(fetchExchangeRate, 60 * 60 * 1000); // toutes les heures
-  return () => clearInterval(interval);
-}, []);
+  // Suppression d'un commentaire
+  const handleDeleteComment = (id: string) => {
+    setComments((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  // Récupération du taux de change avec plusieurs sources
+  useEffect(() => {
+    const fetchExchangeRate = async () => {
+      setIsLoadingRate(true);
+      setRateError(false);
+
+      const apis = [
+        async () => {
+          const res = await fetch("https://api.allorigins.win/raw?url=https://api.frankfurter.app/latest?from=CAD&to=XAF");
+          if (!res.ok) throw new Error();
+          const data = await res.json();
+          return data.rates.XAF;
+        },
+        async () => {
+          const res = await fetch("https://api.exchangerate.host/convert?from=CAD&to=XAF");
+          if (!res.ok) throw new Error();
+          const data = await res.json();
+          return data.result;
+        },
+        async () => 406.47,
+      ];
+
+      for (const fetchFn of apis) {
+        try {
+          const rate = await fetchFn();
+          if (rate && typeof rate === "number" && rate > 0) {
+            setCadToXafRate(rate);
+            setXafToCadRate(1 / rate);
+            setLastUpdate(new Date());
+            setIsLoadingRate(false);
+            return;
+          }
+        } catch (error) {
+          console.warn("API échouée, tentative suivante...");
+        }
+      }
+
+      setRateError(true);
+      setCadToXafRate(406.47);
+      setXafToCadRate(1 / 406.47);
+      setIsLoadingRate(false);
+    };
+
+    fetchExchangeRate();
+    const interval = setInterval(fetchExchangeRate, 60 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const calculateFeesLocal = (amount: number) => amount * FEE_RATE;
 
   const calculateReceivedLocal = (
@@ -192,6 +252,7 @@ useEffect(() => {
             <a href="#how-it-works" className="hover:text-[#0d6e3f] transition-colors">Comment ça marche</a>
             <a href="#partners" className="hover:text-[#0d6e3f] transition-colors">Partenaires</a>
             <a href="#contact" className="hover:text-[#0d6e3f] transition-colors">Contact</a>
+            <a href="#comments" className="hover:text-[#0d6e3f] transition-colors">Commentaires</a>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
@@ -230,6 +291,7 @@ useEffect(() => {
               <a href="#how-it-works" className="text-stone-600 font-medium">Comment ça marche</a>
               <a href="#partners" className="text-stone-600 font-medium">Partenaires</a>
               <a href="#contact" className="text-stone-600 font-medium">Contact</a>
+              <a href="#comments" className="text-stone-600 font-medium">Commentaires</a>
               <hr className="border-stone-200" />
               <Link href="/auth/login" className="text-stone-700 font-semibold">Connexion</Link>
               <Link href="/auth/register" className="px-5 py-3 text-center font-semibold text-white bg-[#0d6e3f] rounded-xl">
@@ -240,7 +302,7 @@ useEffect(() => {
         )}
       </nav>
 
-      {/* ===== HERO ===== */}
+      {/* ===== HERO ===== (inchangé) */}
       <section className="relative pt-32 pb-20 md:pt-44 md:pb-32 overflow-hidden">
         <div className="absolute inset-0 -z-10">
           <div className="absolute top-20 left-10 w-72 h-72 bg-[#0d6e3f]/5 rounded-full blur-3xl" />
@@ -765,6 +827,129 @@ useEffect(() => {
         </div>
       </section>
 
+      {/* ===== COMMENTAIRES SECTION ===== */}
+      <section id="comments" className="py-20 md:py-28 bg-stone-50 scroll-mt-20">
+        <div className="max-w-7xl mx-auto px-6">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={0}
+            className="text-center mb-12"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0d6e3f]/5 border border-[#0d6e3f]/10 text-[#0d6e3f] text-sm font-medium mb-6">
+              <MessageCircle className="w-4 h-4" />
+              Votre avis compte
+            </div>
+            <h2 className="font-display text-3xl md:text-4xl tracking-tight mb-4">
+              Ce que nos <span className="text-[#0d6e3f]">utilisateurs</span> disent
+            </h2>
+            <p className="text-stone-500 text-lg max-w-2xl mx-auto">
+              Partagez votre expérience avec ECOTRANS. Vos commentaires nous aident à nous améliorer.
+            </p>
+          </motion.div>
+
+          <div className="max-w-4xl mx-auto">
+            {/* Formulaire d'ajout */}
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeUp}
+              custom={1}
+              className="bg-white rounded-2xl p-6 shadow-md mb-10 border border-stone-200"
+            >
+              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <User className="w-5 h-5 text-[#0d6e3f]" />
+                Ajouter un commentaire
+              </h3>
+              <form onSubmit={handleAddComment} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">Votre nom</label>
+                  <input
+                    type="text"
+                    value={newCommentName}
+                    onChange={(e) => setNewCommentName(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-stone-300 focus:border-[#0d6e3f] focus:ring-1 focus:ring-[#0d6e3f] transition-colors"
+                    placeholder="ex: Jean Dupont"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">Votre message</label>
+                  <textarea
+                    value={newCommentMessage}
+                    onChange={(e) => setNewCommentMessage(e.target.value)}
+                    rows={3}
+                    className="w-full px-4 py-2 rounded-xl border border-stone-300 focus:border-[#0d6e3f] focus:ring-1 focus:ring-[#0d6e3f] transition-colors"
+                    placeholder="Partagez votre expérience..."
+                  />
+                </div>
+                {commentError && (
+                  <p className="text-red-500 text-sm">{commentError}</p>
+                )}
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0d6e3f] hover:bg-[#094d2c] text-white font-semibold rounded-xl transition-colors shadow-md"
+                >
+                  <Send className="w-4 h-4" />
+                  Publier
+                </button>
+              </form>
+            </motion.div>
+
+            {/* Liste des commentaires */}
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeUp}
+              custom={2}
+              className="space-y-5"
+            >
+              {comments.length === 0 ? (
+                <div className="text-center py-10 bg-white rounded-2xl border border-stone-200">
+                  <p className="text-stone-400">Aucun commentaire pour le moment. Soyez le premier à donner votre avis !</p>
+                </div>
+              ) : (
+                comments.map((comment) => (
+                  <div
+                    key={comment.id}
+                    className="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                          <User className="w-4 h-4 text-[#0d6e3f]" />
+                        </div>
+                        <span className="font-semibold text-stone-800">{comment.name}</span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteComment(comment.id)}
+                        className="text-stone-400 hover:text-red-500 transition-colors"
+                        aria-label="Supprimer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <p className="text-stone-600 mt-2">{comment.message}</p>
+                    <p className="text-xs text-stone-400 mt-3">
+                      {new Date(comment.date).toLocaleDateString("fr-FR", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                ))
+              )}
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* ===== CTA ===== */}
       <section className="py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-6">
@@ -814,6 +999,7 @@ useEffect(() => {
             </div>
             <div className="flex flex-wrap justify-center gap-6 text-sm text-stone-500">
               <a href="#contact" className="hover:text-[#0d6e3f] transition-colors">Contact</a>
+              <a href="#comments" className="hover:text-[#0d6e3f] transition-colors">Commentaires</a>
               <a href="#" className="hover:text-[#0d6e3f] transition-colors">Mentions légales</a>
               <a href="#" className="hover:text-[#0d6e3f] transition-colors">Confidentialité</a>
             </div>
