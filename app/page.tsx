@@ -325,7 +325,7 @@ export default function LandingPage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0d6e3f]/5 border border-[#0d6e3f]/10 text-[#0d6e3f] text-sm font-medium mb-8"
             >
               <div className="w-2 h-2 rounded-full bg-[#0d6e3f] pulse-green" />
-              Seulement 0,5% de frais de transfert
+              Seulement 0,5% de frais de transfert au taux du jour
             </motion.div>
 
             <motion.h1
@@ -347,7 +347,7 @@ export default function LandingPage() {
               custom={2}
               className="text-lg md:text-xl text-stone-500 leading-relaxed mb-10 max-w-xl"
             >
-              Envoyez de l&apos;argent du Canada vers le Cameroun et vice-versa.
+              Envoyez de l&apos;argent du Canada vers le Cameroun.
               Rapide, sécurisé, avec les meilleurs taux du marché.
             </motion.p>
 
