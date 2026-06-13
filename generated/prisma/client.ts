@@ -56,3 +56,8 @@ export type Transaction = Prisma.TransactionModel
  * 
  */
 export type ExchangeRate = Prisma.ExchangeRateModel
+/**
+ * Model Comment
+ * 
+ */
+export type Comment = Prisma.CommentModel

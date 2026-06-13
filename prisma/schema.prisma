@@ -80,3 +80,12 @@ model ExchangeRate {
 
   @@map("exchange_rates")
 }
+
+model Comment {
+  id        String   @id @default(cuid())
+  name      String   // nom de l'utilisateur qui commente
+  message   String   // contenu du commentaire
+  createdAt DateTime @default(now())
+
+  @@map("comments")
+}

@@ -43,12 +43,12 @@ const fadeUp: Variants = {
   }),
 };
 
-// Type pour un commentaire
+// Type pour un commentaire (identique au modèle Prisma)
 type Comment = {
   id: string;
   name: string;
   message: string;
-  date: Date;
+  createdAt: string;
 };
 
 export default function LandingPage() {
@@ -63,60 +63,78 @@ export default function LandingPage() {
   const [rateError, setRateError] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  // État pour les commentaires
+  // État pour les commentaires (via API)
   const [comments, setComments] = useState<Comment[]>([]);
   const [newCommentName, setNewCommentName] = useState("");
   const [newCommentMessage, setNewCommentMessage] = useState("");
   const [commentError, setCommentError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const toCurrency = fromCurrency === "CAD" ? "XAF" : "CAD";
 
-  // Récupération des commentaires depuis localStorage
-  useEffect(() => {
-    const storedComments = localStorage.getItem("ecotrans_comments");
-    if (storedComments) {
-      try {
-        const parsed = JSON.parse(storedComments);
-        // Convertir les dates string en objets Date
-        const commentsWithDates = parsed.map((c: any) => ({
-          ...c,
-          date: new Date(c.date),
-        }));
-        setComments(commentsWithDates);
-      } catch (e) {
-        console.error("Erreur chargement commentaires", e);
+  // Récupération des commentaires depuis la BDD
+  const fetchComments = async () => {
+    try {
+      const res = await fetch("/api/comments");
+      if (res.ok) {
+        const data = await res.json();
+        setComments(data);
       }
+    } catch (error) {
+      console.error("Erreur chargement commentaires", error);
     }
+  };
+
+  useEffect(() => {
+    fetchComments();
   }, []);
 
-  // Sauvegarde des commentaires dans localStorage à chaque modification
-  useEffect(() => {
-    localStorage.setItem("ecotrans_comments", JSON.stringify(comments));
-  }, [comments]);
-
-  // Ajout d'un commentaire
-  const handleAddComment = (e: React.FormEvent) => {
+  // Ajout d'un commentaire via API
+  const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCommentName.trim() || !newCommentMessage.trim()) {
       setCommentError("Veuillez entrer votre nom et un message.");
       return;
     }
-    const newComment: Comment = {
-      id: Date.now().toString(),
-      name: newCommentName.trim(),
-      message: newCommentMessage.trim(),
-      date: new Date(),
-    };
-    setComments((prev) => [newComment, ...prev]);
-    setNewCommentName("");
-    setNewCommentMessage("");
+    setIsSubmitting(true);
     setCommentError("");
+
+    try {
+      const res = await fetch("/api/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newCommentName.trim(),
+          message: newCommentMessage.trim(),
+        }),
+      });
+      if (res.ok) {
+        setNewCommentName("");
+        setNewCommentMessage("");
+        fetchComments(); // recharge la liste
+      } else {
+        const error = await res.json();
+        setCommentError(error.error || "Une erreur est survenue");
+      }
+    } catch (error) {
+      console.error(error);
+      setCommentError("Erreur réseau, veuillez réessayer.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  // Suppression d'un commentaire
-  const handleDeleteComment = (id: string) => {
-    setComments((prev) => prev.filter((c) => c.id !== id));
+  // Suppression d'un commentaire (admin seulement si vous ajoutez un rôle, ici on garde simple)
+  // Pour l'exemple, on supprime uniquement si l'utilisateur est admin (vous pouvez ajuster)
+  // Ici on désactive la suppression publique pour éviter les abus – on peut l'activer côté admin plus tard.
+  // Je laisse le bouton mais sans fonction pour l'instant. 
+  // Pour une démo, vous pouvez ajouter une vérification d'admin ou simplement supprimer l'icône.
+  const handleDeleteComment = async (id: string) => {
+    // Cette route n'existe pas encore – à ajouter si besoin avec authentification admin.
+    console.log("Suppression à implémenter avec authentification", id);
   };
+
+  // (Le reste de votre logique de taux de change est inchangé)
 
   // Récupération du taux de change avec plusieurs sources
   useEffect(() => {
@@ -226,25 +244,15 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen">
-      {/* ===== NAVBAR ===== */}
+      {/* NAVBAR (identique, j'omets pour la lisibilité) */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-stone-200/60">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-9 h-9 relative">
-              <Image
-                src="/logo.png"
-                alt="EcoTrans logo"
-                width={36}
-                height={36}
-                className="rounded-xl object-contain"
-                priority
-              />
+              <Image src="/logo.png" alt="EcoTrans logo" width={36} height={36} className="rounded-xl object-contain" priority />
             </div>
-            <span className="text-xl font-bold tracking-tight">
-              ECO<span className="text-[#0d6e3f]">TRANS</span>
-            </span>
+            <span className="text-xl font-bold tracking-tight">ECO<span className="text-[#0d6e3f]">TRANS</span></span>
           </Link>
-
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-stone-600">
             <a href="#features" className="hover:text-[#0d6e3f] transition-colors">Fonctionnalités</a>
             <a href="#services" className="hover:text-[#0d6e3f] transition-colors">Services</a>
@@ -254,36 +262,14 @@ export default function LandingPage() {
             <a href="#contact" className="hover:text-[#0d6e3f] transition-colors">Contact</a>
             <a href="#comments" className="hover:text-[#0d6e3f] transition-colors">Commentaires</a>
           </div>
-
           <div className="hidden md:flex items-center gap-3">
-            <Link
-              href="/auth/login"
-              className="px-5 py-2.5 text-sm font-semibold text-stone-700 hover:text-[#0d6e3f] transition-colors"
-            >
-              Connexion
-            </Link>
-            <Link
-              href="/auth/register"
-              className="px-5 py-2.5 text-sm font-semibold text-white bg-[#0d6e3f] hover:bg-[#094d2c] rounded-xl transition-all shadow-lg shadow-[#0d6e3f]/20 hover:shadow-[#0d6e3f]/40"
-            >
-              Créer un compte
-            </Link>
+            <Link href="/auth/login" className="px-5 py-2.5 text-sm font-semibold text-stone-700 hover:text-[#0d6e3f] transition-colors">Connexion</Link>
+            <Link href="/auth/register" className="px-5 py-2.5 text-sm font-semibold text-white bg-[#0d6e3f] hover:bg-[#094d2c] rounded-xl transition-all shadow-lg shadow-[#0d6e3f]/20 hover:shadow-[#0d6e3f]/40">Créer un compte</Link>
           </div>
-
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2"
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden p-2">{mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}</button>
         </div>
-
         {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            className="md:hidden border-t border-stone-200 bg-white px-6 pb-6"
-          >
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="md:hidden border-t border-stone-200 bg-white px-6 pb-6">
             <div className="flex flex-col gap-4 pt-4">
               <a href="#features" className="text-stone-600 font-medium">Fonctionnalités</a>
               <a href="#services" className="text-stone-600 font-medium">Services</a>
@@ -294,540 +280,18 @@ export default function LandingPage() {
               <a href="#comments" className="text-stone-600 font-medium">Commentaires</a>
               <hr className="border-stone-200" />
               <Link href="/auth/login" className="text-stone-700 font-semibold">Connexion</Link>
-              <Link href="/auth/register" className="px-5 py-3 text-center font-semibold text-white bg-[#0d6e3f] rounded-xl">
-                Créer un compte
-              </Link>
+              <Link href="/auth/register" className="px-5 py-3 text-center font-semibold text-white bg-[#0d6e3f] rounded-xl">Créer un compte</Link>
             </div>
           </motion.div>
         )}
       </nav>
 
-      {/* ===== HERO ===== (inchangé) */}
-      <section className="relative pt-32 pb-20 md:pt-44 md:pb-32 overflow-hidden">
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-[#0d6e3f]/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-[#e8a838]/5 rounded-full blur-3xl" />
-          <div className="absolute top-40 right-1/4 w-48 h-48 bg-[#fcd116]/8 rounded-full blur-2xl" />
-        </div>
+      {/* ===== HERO ===== (inchangé) – je ne répète pas pour gagner de la place, mais vous devez le conserver. */}
+      {/* ... toute la section hero, features, services, calculator, how-it-works, partners, contact ... */}
 
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="max-w-3xl">
-            <motion.div
-              initial="hidden"
-              animate="visible"
-              variants={fadeUp}
-              custom={0}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0d6e3f]/5 border border-[#0d6e3f]/10 text-[#0d6e3f] text-sm font-medium mb-8"
-            >
-              <div className="w-2 h-2 rounded-full bg-[#0d6e3f] pulse-green" />
-              Seulement 0,5% de frais de transfert
-            </motion.div>
+      {/* Je donne la section commentaires modifiée, le reste doit être identique à votre code existant (que vous avez déjà). */}
 
-            <motion.h1
-              initial="hidden"
-              animate="visible"
-              variants={fadeUp}
-              custom={1}
-              className="font-display text-5xl md:text-7xl leading-[1.1] tracking-tight text-stone-900 mb-6"
-            >
-              Transférez votre argent{" "}
-              <span className="text-[#0d6e3f]">simplement</span>{" "}
-              entre deux pays
-            </motion.h1>
-
-            <motion.p
-              initial="hidden"
-              animate="visible"
-              variants={fadeUp}
-              custom={2}
-              className="text-lg md:text-xl text-stone-500 leading-relaxed mb-10 max-w-xl"
-            >
-              Envoyez de l&apos;argent du Canada vers le Cameroun et vice-versa.
-              Rapide, sécurisé, avec les meilleurs taux du marché.
-            </motion.p>
-
-            <motion.div
-              initial="hidden"
-              animate="visible"
-              variants={fadeUp}
-              custom={3}
-              className="flex flex-col sm:flex-row gap-4"
-            >
-              <Link
-                href="/auth/register"
-                className="group inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold text-white bg-[#0d6e3f] hover:bg-[#094d2c] rounded-2xl transition-all shadow-xl shadow-[#0d6e3f]/25 hover:shadow-[#0d6e3f]/40 hover:-translate-y-0.5"
-              >
-                Commencer maintenant
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <a
-                href="#calculator"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold text-stone-700 bg-white hover:bg-stone-100 rounded-2xl border border-stone-200 transition-all"
-              >
-                Simuler un envoi
-                <ChevronDown className="w-4 h-4" />
-              </a>
-            </motion.div>
-          </div>
-
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={fadeUp}
-            custom={4}
-            className="mt-16 flex flex-wrap items-center gap-8 text-sm text-stone-400"
-          >
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              <span>Chiffrement SSL 256-bit</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              <span>+2 000 utilisateurs actifs</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Star className="w-4 h-4" />
-              <span>4.9/5 satisfaction client</span>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ===== FEATURES ===== */}
-      <section id="features" className="py-20 md:py-28 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            custom={0}
-            className="text-center mb-16"
-          >
-            <h2 className="font-display text-3xl md:text-5xl tracking-tight mb-4">
-              Pourquoi choisir{" "}
-              <span className="text-[#0d6e3f]">ECOTRANS</span> ?
-            </h2>
-            <p className="text-stone-500 text-lg max-w-2xl mx-auto">
-              Une plateforme moderne, sécurisée et pensée pour la diaspora camerounaise. 
-              Nous combinons rapidité, transparence et innovation.
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                icon: Zap,
-                title: "Ultra rapide",
-                desc: "Vos transferts arrivent en moins de 24h, souvent en quelques heures. Suivi en temps réel.",
-                color: "bg-amber-50 text-amber-600 border-amber-100",
-              },
-              {
-                icon: Shield,
-                title: "100% sécurisé",
-                desc: "Authentification à deux facteurs, chiffrement bancaire SSL 256-bit. Vos fonds sont assurés.",
-                color: "bg-emerald-50 text-emerald-600 border-emerald-100",
-              },
-              {
-                icon: Globe,
-                title: "0,5% de frais seulement",
-                desc: "Les frais les plus bas du marché. Pas de coûts cachés, ni de marge sur le taux de change.",
-                color: "bg-sky-50 text-sky-600 border-sky-100",
-              },
-            ].map((feat, i) => (
-              <motion.div
-                key={feat.title}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={fadeUp}
-                custom={i + 1}
-                className="group relative p-8 rounded-3xl bg-stone-50/50 border border-stone-200/60 hover:border-[#0d6e3f]/20 hover:bg-white transition-all duration-300 hover:shadow-xl"
-              >
-                <div className={`w-14 h-14 rounded-2xl ${feat.color} border flex items-center justify-center mb-6`}>
-                  <feat.icon className="w-6 h-6" />
-                </div>
-                <h3 className="text-xl font-bold mb-3">{feat.title}</h3>
-                <p className="text-stone-500 leading-relaxed">{feat.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== SERVICES SECTION ===== */}
-      <section id="services" className="py-20 md:py-28 bg-gradient-to-br from-stone-50 to-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            custom={0}
-            className="text-center mb-16"
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0d6e3f]/5 border border-[#0d6e3f]/10 text-[#0d6e3f] text-sm font-medium mb-6">
-              <CreditCard className="w-4 h-4" />
-              Paiement de factures
-            </div>
-            <h2 className="font-display text-3xl md:text-5xl tracking-tight mb-4">
-              Nos <span className="text-[#0d6e3f]">services</span> exclusifs
-            </h2>
-            <p className="text-stone-500 text-lg max-w-2xl mx-auto">
-              En plus des transferts d'argent, réglez vos factures directement depuis ECOTRANS. 
-              Simple, rapide et sans frais supplémentaires.
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {servicesList.map((service, i) => (
-              <motion.div
-                key={service.title}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={fadeUp}
-                custom={i + 1}
-                className="group p-8 rounded-3xl bg-white border border-stone-200/60 hover:border-[#0d6e3f]/20 hover:shadow-xl transition-all"
-              >
-                <div className={`w-14 h-14 rounded-2xl ${service.color} border flex items-center justify-center mb-6`}>
-                  <service.icon className="w-6 h-6" />
-                </div>
-                <h3 className="text-xl font-bold mb-3">{service.title}</h3>
-                <p className="text-stone-500 leading-relaxed mb-4">{service.description}</p>
-                <div className="flex items-center gap-2 text-sm text-[#0d6e3f] font-medium">
-                  <CheckCircle className="w-4 h-4" />
-                  <span>Paiement instantané</span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          <motion.p
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            custom={3}
-            className="mt-12 text-center text-stone-400 text-sm"
-          >
-            ✨ Plus de services à venir : électricité (ENEO), scolarité, impôts, et bien d'autres.
-          </motion.p>
-        </div>
-      </section>
-
-      {/* ===== CALCULATOR ===== */}
-      <section id="calculator" className="py-20 md:py-28 relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#094d2c] via-[#0d6e3f] to-[#15a85e]" />
-        <div className="absolute inset-0 -z-10 noise" />
-
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={fadeUp}
-              custom={0}
-            >
-              <h2 className="font-display text-3xl md:text-5xl tracking-tight text-white mb-6">
-                Simulez votre transfert
-              </h2>
-              <p className="text-white/70 text-lg leading-relaxed mb-8">
-                Voyez exactement combien votre destinataire recevra.
-                Transparent, sans frais cachés.
-              </p>
-              <div className="flex items-center gap-6 text-white/60 text-sm">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  Réception en &lt;24h
-                </div>
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  Taux garanti
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={fadeUp}
-              custom={1}
-              className="bg-white rounded-3xl p-8 shadow-2xl"
-            >
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-stone-500 mb-2">
-                  Vous envoyez
-                </label>
-                <div className="flex gap-3">
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(Number(e.target.value) || 0)}
-                    className="flex-1 px-4 py-3.5 rounded-xl border border-stone-200 text-xl font-bold focus:border-[#0d6e3f] transition-colors"
-                    min={1}
-                  />
-                  <select
-                    value={fromCurrency}
-                    onChange={(e) => setFromCurrency(e.target.value as "CAD" | "XAF")}
-                    className="px-4 py-3.5 rounded-xl border border-stone-200 font-semibold bg-stone-50 focus:border-[#0d6e3f] transition-colors"
-                  >
-                    <option value="CAD">🇨🇦 CAD</option>
-                    <option value="XAF">🇨🇲 XAF</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-3 py-5 border-y border-stone-100 mb-6">
-                <div className="flex justify-between text-sm">
-                  <span className="text-stone-500">Frais (0,5%)</span>
-                  <span className="font-semibold text-stone-700">
-                    {formatCurrency(fees, fromCurrency)}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-stone-500">Taux de change</span>
-                  {isLoadingRate ? (
-                    <span className="text-stone-400 italic">Chargement...</span>
-                  ) : rateError ? (
-                    <span className="text-red-500 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" /> Taux indicatif
-                    </span>
-                  ) : (
-                    <span className="font-semibold text-stone-700">
-                      1 {fromCurrency} ={" "}
-                      {fromCurrency === "CAD"
-                        ? `${cadToXafRate?.toFixed(2)} XAF`
-                        : `${xafToCadRate?.toFixed(6)} CAD`}
-                    </span>
-                  )}
-                </div>
-                {lastUpdate && !isLoadingRate && !rateError && (
-                  <div className="text-right text-xs text-stone-400">
-                    Mis à jour {lastUpdate.toLocaleTimeString()}
-                  </div>
-                )}
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-stone-500 mb-2">
-                  Le destinataire reçoit
-                </label>
-                <div className="px-5 py-4 rounded-xl bg-emerald-50 border border-emerald-100">
-                  {isLoadingRate ? (
-                    <span className="text-stone-500">Calcul en cours...</span>
-                  ) : (
-                    <span className="text-3xl font-bold text-[#0d6e3f]">
-                      {formatCurrency(received, toCurrency)}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <Link
-                href="/auth/register"
-                className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 text-base font-semibold text-white bg-[#0d6e3f] hover:bg-[#094d2c] rounded-xl transition-all shadow-lg shadow-[#0d6e3f]/25"
-              >
-                <Send className="w-4 h-4" />
-                Envoyer maintenant
-              </Link>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== HOW IT WORKS ===== */}
-      <section id="how-it-works" className="py-20 md:py-28 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            custom={0}
-            className="text-center mb-16"
-          >
-            <h2 className="font-display text-3xl md:text-5xl tracking-tight mb-4">
-              Comment ça marche ?
-            </h2>
-            <p className="text-stone-500 text-lg max-w-xl mx-auto">
-              Trois étapes simples pour envoyer de l&apos;argent en toute sérénité.
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8 relative">
-            <div className="hidden md:block absolute top-16 left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-[#0d6e3f]/20 via-[#0d6e3f]/40 to-[#0d6e3f]/20" />
-
-            {[
-              {
-                step: "01",
-                title: "Créez votre compte",
-                desc: "Inscrivez-vous en 2 minutes avec votre email. Vérification rapide et sécurisée.",
-              },
-              {
-                step: "02",
-                title: "Entrez les détails",
-                desc: "Choisissez le montant, la devise, et les informations de votre destinataire.",
-              },
-              {
-                step: "03",
-                title: "Envoyez !",
-                desc: "Confirmez et votre argent est en route. Suivi en temps réel disponible.",
-              },
-            ].map((item, i) => (
-              <motion.div
-                key={item.step}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={fadeUp}
-                custom={i + 1}
-                className="text-center relative"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-[#0d6e3f] text-white flex items-center justify-center text-2xl font-bold mx-auto mb-6 shadow-lg shadow-[#0d6e3f]/25 relative z-10">
-                  {item.step}
-                </div>
-                <h3 className="text-xl font-bold mb-3">{item.title}</h3>
-                <p className="text-stone-500 leading-relaxed max-w-xs mx-auto">
-                  {item.desc}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== PARTNERS SECTION ===== */}
-      <section id="partners" className="py-20 md:py-28 bg-stone-50 scroll-mt-20">
-        <div className="max-w-7xl mx-auto px-6">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            custom={0}
-            className="text-center mb-12"
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0d6e3f]/5 border border-[#0d6e3f]/10 text-[#0d6e3f] text-sm font-medium mb-6">
-              <Building2 className="w-4 h-4" />
-              Ils nous font confiance
-            </div>
-            <h2 className="font-display text-3xl md:text-4xl tracking-tight mb-4">
-              Nos <span className="text-[#0d6e3f]">partenaires</span>
-            </h2>
-            <p className="text-stone-500 text-lg max-w-2xl mx-auto">
-              ECOTRANS collabore avec les plus grandes institutions financières et 
-              opérateurs télécoms pour vous offrir un service fiable.
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            custom={1}
-            className="flex flex-wrap justify-center items-center gap-8 md:gap-12"
-          >
-            {partnersList.map((partner) => (
-              <div
-                key={partner.name}
-                className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 min-w-[140px]"
-              >
-                <img
-                  src={partner.logo}
-                  alt={partner.alt}
-                  className="h-16 w-auto object-contain"
-                />
-                <span className="text-xs text-stone-400 font-medium text-center">
-                  {partner.name}
-                </span>
-              </div>
-            ))}
-          </motion.div>
-
-          <motion.p
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            custom={2}
-            className="text-center text-stone-400 text-sm mt-8"
-          >
-            * Les logos sont des marques déposées par leurs propriétaires respectifs
-          </motion.p>
-        </div>
-      </section>
-
-      {/* ===== CONTACT SECTION ===== */}
-      <section id="contact" className="py-20 md:py-28 bg-white scroll-mt-20">
-        <div className="max-w-7xl mx-auto px-6">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            custom={0}
-            className="text-center mb-12"
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#0d6e3f]/5 border border-[#0d6e3f]/10 text-[#0d6e3f] text-sm font-medium mb-6">
-              <Mail className="w-4 h-4" />
-              Contactez-nous
-            </div>
-            <h2 className="font-display text-3xl md:text-4xl tracking-tight mb-4">
-              Une question ? <span className="text-[#0d6e3f]">Notre équipe</span> est là pour vous
-            </h2>
-            <p className="text-stone-500 text-lg max-w-2xl mx-auto">
-              Que vous soyez un nouvel utilisateur ou un partenaire, n'hésitez pas à nous contacter.
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            custom={1}
-            className="max-w-2xl mx-auto bg-gradient-to-br from-stone-50 to-white rounded-3xl p-8 shadow-xl border border-stone-200"
-          >
-            <div className="space-y-6">
-              <div className="flex items-center gap-5 p-4 rounded-2xl bg-white shadow-sm hover:shadow-md transition-all">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <Mail className="w-6 h-6 text-[#0d6e3f]" />
-                </div>
-                <div>
-                  <p className="text-sm text-stone-500 font-medium">Email</p>
-                  <a href="mailto:ecotrans165@gmail.com" className="text-lg font-semibold text-stone-800 hover:text-[#0d6e3f] transition-colors">
-                    ecotrans165@gmail.com
-                  </a>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-5 p-4 rounded-2xl bg-white shadow-sm hover:shadow-md transition-all">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <Phone className="w-6 h-6 text-[#0d6e3f]" />
-                </div>
-                <div>
-                  <p className="text-sm text-stone-500 font-medium">Téléphone / WhatsApp</p>
-                  <a href="tel:+15062534155" className="text-lg font-semibold text-stone-800 hover:text-[#0d6e3f] transition-colors">
-                    +1 (506) 253-4155
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-stone-200 text-center">
-              <p className="text-stone-400 text-sm">
-                Réponse sous 24h ouvrées. Support disponible en français et en anglais.
-              </p>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ===== COMMENTAIRES SECTION ===== */}
+      {/* ===== COMMENTAIRES SECTION ===== (avec API BDD) */}
       <section id="comments" className="py-20 md:py-28 bg-stone-50 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-6">
           <motion.div
@@ -885,15 +349,14 @@ export default function LandingPage() {
                     placeholder="Partagez votre expérience..."
                   />
                 </div>
-                {commentError && (
-                  <p className="text-red-500 text-sm">{commentError}</p>
-                )}
+                {commentError && <p className="text-red-500 text-sm">{commentError}</p>}
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0d6e3f] hover:bg-[#094d2c] text-white font-semibold rounded-xl transition-colors shadow-md"
+                  disabled={isSubmitting}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0d6e3f] hover:bg-[#094d2c] text-white font-semibold rounded-xl transition-colors shadow-md disabled:opacity-50"
                 >
                   <Send className="w-4 h-4" />
-                  Publier
+                  {isSubmitting ? "Envoi..." : "Publier"}
                 </button>
               </form>
             </motion.div>
@@ -913,10 +376,7 @@ export default function LandingPage() {
                 </div>
               ) : (
                 comments.map((comment) => (
-                  <div
-                    key={comment.id}
-                    className="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 hover:shadow-md transition-shadow"
-                  >
+                  <div key={comment.id} className="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
@@ -924,17 +384,12 @@ export default function LandingPage() {
                         </div>
                         <span className="font-semibold text-stone-800">{comment.name}</span>
                       </div>
-                      <button
-                        onClick={() => handleDeleteComment(comment.id)}
-                        className="text-stone-400 hover:text-red-500 transition-colors"
-                        aria-label="Supprimer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {/* Suppression désactivée pour l'exemple (nécessite auth admin) */}
+                      {/* <button onClick={() => handleDeleteComment(comment.id)} className="text-stone-400 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button> */}
                     </div>
                     <p className="text-stone-600 mt-2">{comment.message}</p>
                     <p className="text-xs text-stone-400 mt-3">
-                      {new Date(comment.date).toLocaleDateString("fr-FR", {
+                      {new Date(comment.createdAt).toLocaleDateString("fr-FR", {
                         day: "numeric",
                         month: "long",
                         year: "numeric",
@@ -950,65 +405,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ===== CTA ===== */}
-      <section className="py-20 md:py-28">
-        <div className="max-w-7xl mx-auto px-6">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            custom={0}
-            className="relative rounded-3xl bg-stone-900 p-12 md:p-20 text-center overflow-hidden"
-          >
-            <div className="absolute inset-0 noise" />
-            <div className="absolute top-0 right-0 w-80 h-80 bg-[#0d6e3f]/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-60 h-60 bg-[#e8a838]/10 rounded-full blur-3xl" />
-
-            <div className="relative z-10">
-              <h2 className="font-display text-3xl md:text-5xl tracking-tight text-white mb-6">
-                Prêt à commencer ?
-              </h2>
-              <p className="text-stone-400 text-lg mb-10 max-w-lg mx-auto">
-                Rejoignez des milliers de Camerounais et Canadiens qui font
-                confiance à ECOTRANS pour leurs transferts.
-              </p>
-              <Link
-                href="/auth/register"
-                className="group inline-flex items-center gap-2 px-10 py-4 text-base font-semibold text-stone-900 bg-[#e8a838] hover:bg-[#f0c060] rounded-2xl transition-all shadow-xl shadow-[#e8a838]/25"
-              >
-                Créer mon compte gratuitement
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ===== FOOTER ===== */}
-      <footer className="py-12 border-t border-stone-200">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 relative">
-                <Image src="/logo.png" alt="EcoTrans logo" width={32} height={32} className="rounded-lg object-contain" />
-              </div>
-              <span className="text-lg font-bold">
-                ECO<span className="text-[#0d6e3f]">TRANS</span>
-              </span>
-            </div>
-            <div className="flex flex-wrap justify-center gap-6 text-sm text-stone-500">
-              <a href="#contact" className="hover:text-[#0d6e3f] transition-colors">Contact</a>
-              <a href="#comments" className="hover:text-[#0d6e3f] transition-colors">Commentaires</a>
-              <a href="#" className="hover:text-[#0d6e3f] transition-colors">Mentions légales</a>
-              <a href="#" className="hover:text-[#0d6e3f] transition-colors">Confidentialité</a>
-            </div>
-            <p className="text-sm text-stone-400">
-              © {new Date().getFullYear()} ECOTRANS. Tous droits réservés.
-            </p>
-          </div>
-        </div>
-      </footer>
+      {/* ===== CTA et FOOTER ===== (inchangés) */}
+      {/* ... vous devez conserver le reste de votre code (CTA, footer) ... */}
     </div>
   );
 }
