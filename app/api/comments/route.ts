@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma"; // à adapter selon votre config
+import prisma from "@/lib/prisma";
 
-// GET : récupérer tous les commentaires (du plus récent au plus ancien)
 export async function GET() {
   try {
     const comments = await prisma.comment.findMany({
@@ -14,10 +13,9 @@ export async function GET() {
   }
 }
 
-// POST : ajouter un nouveau commentaire
 export async function POST(request: Request) {
   try {
-    const { name, message } = await request.json();
+    const { name, message, rating } = await request.json();
     if (!name?.trim() || !message?.trim()) {
       return NextResponse.json(
         { error: "Nom et message requis" },
@@ -25,10 +23,13 @@ export async function POST(request: Request) {
       );
     }
 
+    const validatedRating = typeof rating === "number" && rating >= 1 && rating <= 5 ? rating : 0;
+
     const newComment = await prisma.comment.create({
       data: {
         name: name.trim(),
         message: message.trim(),
+        rating: validatedRating,
       },
     });
     return NextResponse.json(newComment, { status: 201 });

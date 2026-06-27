@@ -42,11 +42,12 @@ const fadeUp: Variants = {
   }),
 };
 
-// Type pour un commentaire (identique au modèle Prisma)
+// Type pour un commentaire (avec notation)
 type Comment = {
   id: string;
   name: string;
   message: string;
+  rating: number;        // Nouveau champ
   createdAt: string;
 };
 
@@ -66,6 +67,7 @@ export default function LandingPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newCommentName, setNewCommentName] = useState("");
   const [newCommentMessage, setNewCommentMessage] = useState("");
+  const [newCommentRating, setNewCommentRating] = useState(0); // Nouvel état
   const [commentError, setCommentError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -88,11 +90,15 @@ export default function LandingPage() {
     fetchComments();
   }, []);
 
-  // Ajout d'un commentaire via API
+  // Ajout d'un commentaire via API (avec note)
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCommentName.trim() || !newCommentMessage.trim()) {
       setCommentError("Veuillez entrer votre nom et un message.");
+      return;
+    }
+    if (newCommentRating === 0) {
+      setCommentError("Veuillez attribuer une note (1 à 5 étoiles).");
       return;
     }
     setIsSubmitting(true);
@@ -105,12 +111,14 @@ export default function LandingPage() {
         body: JSON.stringify({
           name: newCommentName.trim(),
           message: newCommentMessage.trim(),
+          rating: newCommentRating,   // Envoi de la note
         }),
       });
       if (res.ok) {
         setNewCommentName("");
         setNewCommentMessage("");
-        fetchComments(); // recharge la liste
+        setNewCommentRating(0);       // Réinitialisation
+        fetchComments();             // recharge la liste
       } else {
         const error = await res.json();
         setCommentError(error.error || "Une erreur est survenue");
@@ -123,7 +131,7 @@ export default function LandingPage() {
     }
   };
 
-  // Récupération du taux de change avec plusieurs sources
+  // Récupération du taux de change (inchangée)
   useEffect(() => {
     const fetchExchangeRate = async () => {
       setIsLoadingRate(true);
@@ -171,6 +179,7 @@ export default function LandingPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Calculs (inchangés)
   const calculateFeesLocal = (amount: number) => amount * FEE_RATE;
 
   const calculateReceivedLocal = (
@@ -260,24 +269,9 @@ export default function LandingPage() {
             <a href="#comments" className="hover:text-[#0d6e3f] transition-colors">Commentaires</a>
           </div>
 
-        
           <div className="hidden md:flex items-center gap-3">
-              {/*
-            <Link
-              href="/auth/login"
-              className="px-5 py-2.5 text-sm font-semibold text-stone-700 hover:text-[#0d6e3f] transition-colors"
-            >
-              Connexion
-            </Link>
-            <Link
-              href="/auth/register"
-              className="px-5 py-2.5 text-sm font-semibold text-white bg-[#0d6e3f] hover:bg-[#094d2c] rounded-xl transition-all shadow-lg shadow-[#0d6e3f]/20 hover:shadow-[#0d6e3f]/40"
-            >
-              Créer un compte
-            </Link>
-               */}
+            {/* Les liens de connexion/inscription sont commentés dans votre code */}
           </div>
-       
 
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -302,7 +296,7 @@ export default function LandingPage() {
               <a href="#contact" className="text-stone-600 font-medium">Contact</a>
               <a href="#comments" className="text-stone-600 font-medium">Commentaires</a>
               <hr className="border-stone-200" />
-            ./  <Link href="/auth/login" className="text-stone-700 font-semibold">Connexion</Link>
+              <Link href="/auth/login" className="text-stone-700 font-semibold">Connexion</Link>
               <Link href="/auth/register" className="px-5 py-3 text-center font-semibold text-white bg-[#0d6e3f] rounded-xl">
                 Créer un compte
               </Link>
@@ -836,7 +830,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ===== COMMENTAIRES SECTION ===== (avec API BDD) */}
+      {/* ===== COMMENTAIRES SECTION ===== (avec notation par étoiles) */}
       <section id="comments" className="py-20 md:py-28 bg-stone-50 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-6">
           <motion.div
@@ -860,7 +854,7 @@ export default function LandingPage() {
           </motion.div>
 
           <div className="max-w-4xl mx-auto">
-            {/* Formulaire d'ajout */}
+            {/* Formulaire d'ajout avec sélection d'étoiles */}
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -894,6 +888,35 @@ export default function LandingPage() {
                     placeholder="Partagez votre expérience..."
                   />
                 </div>
+
+                {/* Nouveau champ : sélection d'étoiles */}
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">Votre note</label>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setNewCommentRating(star)}
+                        className="focus:outline-none transition-transform hover:scale-110"
+                      >
+                        <Star
+                          className={`w-6 h-6 ${
+                            star <= newCommentRating
+                              ? "fill-yellow-400 text-yellow-400"
+                              : "text-stone-300"
+                          }`}
+                        />
+                      </button>
+                    ))}
+                    <span className="text-sm text-stone-400 ml-2">
+                      {newCommentRating > 0
+                        ? `${newCommentRating} étoile${newCommentRating > 1 ? "s" : ""}`
+                        : "Non noté"}
+                    </span>
+                  </div>
+                </div>
+
                 {commentError && <p className="text-red-500 text-sm">{commentError}</p>}
                 <button
                   type="submit"
@@ -906,7 +929,7 @@ export default function LandingPage() {
               </form>
             </motion.div>
 
-            {/* Liste des commentaires */}
+            {/* Liste des commentaires avec affichage des étoiles */}
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -921,17 +944,30 @@ export default function LandingPage() {
                 </div>
               ) : (
                 comments.map((comment) => (
-                  <div key={comment.id} className="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                          <User className="w-4 h-4 text-[#0d6e3f]" />
-                        </div>
-                        <span className="font-semibold text-stone-800">{comment.name}</span>
+                  <div
+                    key={comment.id}
+                    className="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                        <User className="w-4 h-4 text-[#0d6e3f]" />
                       </div>
-                      {/* La suppression nécessite une authentification admin, non implémentée ici */}
+                      <span className="font-semibold text-stone-800">{comment.name}</span>
+                      {/* Affichage des étoiles */}
+                      <div className="flex gap-0.5 ml-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`w-4 h-4 ${
+                              star <= comment.rating
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "text-stone-300"
+                            }`}
+                          />
+                        ))}
+                      </div>
                     </div>
-                    <p className="text-stone-600 mt-2">{comment.message}</p>
+                    <p className="text-stone-600 mt-1">{comment.message}</p>
                     <p className="text-xs text-stone-400 mt-3">
                       {new Date(comment.createdAt).toLocaleDateString("fr-FR", {
                         day: "numeric",

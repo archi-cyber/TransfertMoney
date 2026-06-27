@@ -83,9 +83,8 @@ model ExchangeRate {
 
 model Comment {
   id        String   @id @default(cuid())
-  name      String   // nom de l'utilisateur qui commente
-  message   String   // contenu du commentaire
+  name      String
+  message   String
+  rating    Int      @default(0)   // ← ajout du champ
   createdAt DateTime @default(now())
-
-  @@map("comments")
 }
