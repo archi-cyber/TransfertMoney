@@ -260,7 +260,9 @@ export default function LandingPage() {
             <a href="#comments" className="hover:text-[#0d6e3f] transition-colors">Commentaires</a>
           </div>
 
+        
           <div className="hidden md:flex items-center gap-3">
+              {/*
             <Link
               href="/auth/login"
               className="px-5 py-2.5 text-sm font-semibold text-stone-700 hover:text-[#0d6e3f] transition-colors"
@@ -273,7 +275,9 @@ export default function LandingPage() {
             >
               Créer un compte
             </Link>
+               */}
           </div>
+       
 
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -298,7 +302,7 @@ export default function LandingPage() {
               <a href="#contact" className="text-stone-600 font-medium">Contact</a>
               <a href="#comments" className="text-stone-600 font-medium">Commentaires</a>
               <hr className="border-stone-200" />
-              <Link href="/auth/login" className="text-stone-700 font-semibold">Connexion</Link>
+            ./  <Link href="/auth/login" className="text-stone-700 font-semibold">Connexion</Link>
               <Link href="/auth/register" className="px-5 py-3 text-center font-semibold text-white bg-[#0d6e3f] rounded-xl">
                 Créer un compte
               </Link>
