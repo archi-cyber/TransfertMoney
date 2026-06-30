@@ -986,24 +986,7 @@ export default function LandingPage() {
       </section>
 
       {/* ===== CTA ===== */}
-      <section className="py-20 md:py-28">
-        <div className="max-w-7xl mx-auto px-6">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            custom={0}
-            className="relative rounded-3xl bg-stone-900 p-12 md:p-20 text-center overflow-hidden"
-          >
-            <div className="absolute inset-0 noise" />
-            <div className="absolute top-0 right-0 w-80 h-80 bg-[#0d6e3f]/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-60 h-60 bg-[#e8a838]/10 rounded-full blur-3xl" />
-
-           
-          </motion.div>
-        </div>
-      </section>
+      
 
       {/* ===== FOOTER ===== */}
       <footer className="py-12 border-t border-stone-200">
