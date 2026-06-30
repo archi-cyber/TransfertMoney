@@ -1000,22 +1000,7 @@ export default function LandingPage() {
             <div className="absolute top-0 right-0 w-80 h-80 bg-[#0d6e3f]/10 rounded-full blur-3xl" />
             <div className="absolute bottom-0 left-0 w-60 h-60 bg-[#e8a838]/10 rounded-full blur-3xl" />
 
-            <div className="relative z-10">
-              <h2 className="font-display text-3xl md:text-5xl tracking-tight text-white mb-6">
-                Prêt à commencer ?
-              </h2>
-              <p className="text-stone-400 text-lg mb-10 max-w-lg mx-auto">
-                Rejoignez des milliers de Camerounais et Canadiens qui font
-                confiance à ECOTRANS pour leurs transferts.
-              </p>
-              <Link
-                href="/auth/register"
-                className="group inline-flex items-center gap-2 px-10 py-4 text-base font-semibold text-stone-900 bg-[#e8a838] hover:bg-[#f0c060] rounded-2xl transition-all shadow-xl shadow-[#e8a838]/25"
-              >
-                Créer mon compte gratuitement
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
+           
           </motion.div>
         </div>
       </section>
