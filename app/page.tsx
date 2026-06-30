@@ -356,13 +356,7 @@ export default function LandingPage() {
               custom={3}
               className="flex flex-col sm:flex-row gap-4"
             >
-              <Link
-                href="/auth/register"
-                className="group inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold text-white bg-[#0d6e3f] hover:bg-[#094d2c] rounded-2xl transition-all shadow-xl shadow-[#0d6e3f]/25 hover:shadow-[#0d6e3f]/40 hover:-translate-y-0.5"
-              >
-                Commencer maintenant
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
+            
               <a
                 href="#calculator"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold text-stone-700 bg-white hover:bg-stone-100 rounded-2xl border border-stone-200 transition-all"
